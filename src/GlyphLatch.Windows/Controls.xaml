@@ -201,6 +201,10 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <Style x:Key="CatalogPreset" TargetType="ToggleButton" BasedOn="{StaticResource Segment}">
+        <Setter Property="MinWidth" Value="34" />
+        <Setter Property="Padding" Value="6,3" />
+    </Style>
     <Style x:Key="ThemeSwitch" TargetType="ToggleButton">
         <Setter Property="FontFamily" Value="{DynamicResource InterfaceFont}" />
         <Setter Property="Foreground" Value="{DynamicResource Ink}" />
@@ -245,8 +249,7 @@
                 <ControlTemplate TargetType="TextBox">
                     <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
-                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
-                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource Focus}" /></Trigger>

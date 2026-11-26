@@ -19,7 +19,7 @@
         <Border Background="{DynamicResource Rail}">
             <DockPanel Margin="13,17,13,13">
                 <StackPanel DockPanel.Dock="Top">
-                    <StackPanel Orientation="Horizontal" Margin="5,0,0,23">
+                    <StackPanel Orientation="Horizontal" Margin="5,0,0,15">
                         <Viewbox Width="34" Height="34">
                             <Canvas Width="64" Height="64">
                                 <Rectangle Canvas.Left="1" Canvas.Top="1" Width="62" Height="62" RadiusX="16" RadiusY="16" Fill="{DynamicResource Ink}" />
@@ -30,6 +30,13 @@
                         </Viewbox>
                         <TextBlock Text="GlyphLatch" FontSize="21" FontWeight="SemiBold" Margin="9,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
+                    <Button x:Name="ImportButton" Style="{StaticResource Primary}" Click="ImportMenu"
+                            Margin="0,0,0,12" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Добавить в библиотеку">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" Text="⌄" Margin="6,0,0,0" />
+                            <TextBlock Text="+  Добавить" />
+                        </DockPanel>
+                    </Button>
                     <Button x:Name="AllButton" Style="{StaticResource RailButton}" Click="SelectAll" Content="Все шрифты" />
                     <Button x:Name="ActiveButton" Style="{StaticResource RailButton}" Click="SelectActive" AutomationProperties.Name="Активные шрифты">
                         <StackPanel Orientation="Horizontal">
@@ -102,52 +109,61 @@
                 <RowDefinition Height="*" /><RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <DockPanel Margin="0,0,0,12">
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button x:Name="ImportFolderButton" Content="Подключить папку…" Click="ImportFolder" Margin="0,0,6,0" />
-                    <Button x:Name="ImportFontsButton" Content="Добавить шрифты…" Style="{StaticResource Primary}" Click="ImportFiles" />
-                </StackPanel>
+                <Button x:Name="UseSetButton" DockPanel.Dock="Right" VerticalAlignment="Center" Content="Включить набор"
+                        Click="ToggleCurrentSet" Visibility="Collapsed" />
                 <StackPanel Margin="0,0,12,0">
                     <TextBlock x:Name="PageTitle" Text="Библиотека" FontSize="32" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                     <TextBlock x:Name="PageSubtitle" Text="Все шрифты" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
             </DockPanel>
-            <DockPanel Grid.Row="1" Margin="0,0,0,9">
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="6,0,0,0">
-                    <ToggleButton x:Name="CyrillicFilter" Style="{StaticResource Segment}" Content="С кириллицей" Click="FilterChanged" />
-                    <Button x:Name="RefreshButton" Style="{StaticResource Quiet}" Click="RefreshClick" Content="↻"
-                            ToolTip="Обновить библиотеку" AutomationProperties.Name="Обновить библиотеку" />
-                    <Button x:Name="UseSetButton" Content="Включить набор" Click="ToggleCurrentSet" Visibility="Collapsed" />
-                </StackPanel>
+            <Grid Grid.Row="1" Margin="0,0,0,9">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*" MinWidth="120" MaxWidth="285" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
                 <Grid>
-                    <TextBox x:Name="SearchBox" Height="37" Padding="30,5,29,5" TextChanged="SearchChanged" AutomationProperties.Name="Поиск шрифтов" ToolTip="Ctrl+F" />
+                    <TextBox x:Name="SearchBox" MinHeight="35" Padding="30,4,27,4" TextChanged="SearchChanged"
+                             AutomationProperties.Name="Поиск шрифтов" ToolTip="Ctrl+F" />
                     <Path Data="M 8.5,8.5 L13,13 M10,5.5 A4.5,4.5 0 1 1 1,5.5 A4.5,4.5 0 1 1 10,5.5"
                           Stroke="{DynamicResource Muted}" Width="15" Height="15" Stretch="Uniform" HorizontalAlignment="Left" VerticalAlignment="Center"
                           Margin="9,0,0,0" IsHitTestVisible="False" />
-                    <TextBlock x:Name="SearchPlaceholder" Text="Поиск гарнитур и начертаний" Style="{StaticResource Caption}"
-                               Margin="30,0,30,0" VerticalAlignment="Center" IsHitTestVisible="False" />
+                    <TextBlock x:Name="SearchPlaceholder" Text="Поиск шрифтов" Style="{StaticResource Caption}"
+                               Margin="30,0,7,0" VerticalAlignment="Center" IsHitTestVisible="False" TextTrimming="CharacterEllipsis" />
                     <Button x:Name="ClearSearchButton" Style="{StaticResource Quiet}" Content="×" HorizontalAlignment="Right"
                             Margin="0,2,2,2" Click="ClearSearch" MinHeight="28" Padding="6,0" Visibility="Collapsed"
                             AutomationProperties.Name="Очистить поиск" />
                 </Grid>
-            </DockPanel>
-            <StackPanel Grid.Row="2" Margin="0,0,0,9">
-                <DockPanel>
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
-                        <Slider x:Name="SampleSize" Width="79" Minimum="20" Maximum="76" Value="42" ValueChanged="SampleSizeChanged"
-                                IsSnapToTickEnabled="True" TickFrequency="1" ToolTip="Размер образца" AutomationProperties.Name="Размер образца" />
-                        <TextBlock x:Name="SizeLabel" Width="40" TextAlignment="Right" Style="{StaticResource Caption}" VerticalAlignment="Center" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <ToggleButton x:Name="LatinPreset" Style="{StaticResource Segment}" Content="Латиница" Tag="latin" Click="SamplePreset" />
-                        <ToggleButton x:Name="CyrillicPreset" Style="{StaticResource Segment}" Content="Кириллица" Tag="cyrillic" Click="SamplePreset" />
-                        <ToggleButton x:Name="DigitsPreset" Style="{StaticResource Segment}" Content="Цифры" Tag="digits" Click="SamplePreset" />
-                        <Button x:Name="MorePresets" Style="{StaticResource Quiet}" Content="Ещё ▾" Click="MoreSamples" />
-                        <ToggleButton x:Name="CustomPreset" Style="{StaticResource Segment}" Content="Свой текст" Tag="custom" Click="SamplePreset" />
-                    </StackPanel>
-                </DockPanel>
-                <TextBox x:Name="SampleText" Visibility="Collapsed" MinHeight="39" Margin="0,5,0,0" TextChanged="SampleChanged"
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                    <ToggleButton x:Name="LatinPreset" Style="{StaticResource CatalogPreset}" Content="Aa" Tag="latin" Click="SamplePreset"
+                                  ToolTip="Образец на латинице" AutomationProperties.Name="Образец на латинице" />
+                    <ToggleButton x:Name="CyrillicPreset" Style="{StaticResource CatalogPreset}" Content="Ая" Tag="cyrillic" Click="SamplePreset"
+                                  ToolTip="Образец на кириллице" AutomationProperties.Name="Образец на кириллице" />
+                    <ToggleButton x:Name="DigitsPreset" Style="{StaticResource CatalogPreset}" Content="123" Tag="digits" Click="SamplePreset"
+                                  ToolTip="Образец с цифрами" AutomationProperties.Name="Образец с цифрами" />
+                    <ToggleButton x:Name="CustomPreset" Style="{StaticResource CatalogPreset}" Tag="custom" Click="SamplePreset"
+                                  ToolTip="Свой текст образца" AutomationProperties.Name="Свой текст образца">
+                        <Path Width="13" Height="13" Stretch="Uniform" Stroke="{DynamicResource Ink}" StrokeThickness="1.2"
+                              StrokeLineJoin="Round" Data="M2,11 L2,14 L5,14 L14,5 L11,2 Z M9.5,3.5 L12.5,6.5" />
+                    </ToggleButton>
+                    <Button x:Name="MorePresets" Style="{StaticResource Quiet}" Content="···" Click="MoreSamples" Width="34"
+                            Padding="0" ToolTip="Другие образцы" AutomationProperties.Name="Другие образцы" />
+                </StackPanel>
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                    <ToggleButton x:Name="CyrillicFilter" Style="{StaticResource Segment}" Content="С кириллицей" Click="FilterChanged"
+                                  ToolTip="Показывать шрифты с полным русским алфавитом" />
+                    <Button x:Name="RefreshButton" Style="{StaticResource Quiet}" Click="RefreshClick" Content="↻" Padding="6,0"
+                            ToolTip="Обновить библиотеку" AutomationProperties.Name="Обновить библиотеку" />
+                    <Slider x:Name="SampleSize" Width="67" Margin="9,0,0,0" Minimum="20" Maximum="76" Value="42" ValueChanged="SampleSizeChanged"
+                            IsSnapToTickEnabled="True" TickFrequency="1" ToolTip="Размер образца" AutomationProperties.Name="Размер образца" />
+                    <TextBlock x:Name="SizeLabel" Width="39" TextAlignment="Right" Style="{StaticResource Caption}" VerticalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+            <StackPanel Grid.Row="2">
+                <TextBox x:Name="SampleText" Visibility="Collapsed" MinHeight="39" Margin="0,0,0,9" TextChanged="SampleChanged"
                          MaxLength="160" AutomationProperties.Name="Свой текст образца" />
-                <StackPanel x:Name="ScanIndicator" Visibility="Collapsed" Margin="0,7,0,0" AutomationProperties.LiveSetting="Polite">
+                <StackPanel x:Name="ScanIndicator" Visibility="Collapsed" Margin="0,0,0,9" AutomationProperties.LiveSetting="Polite">
                     <TextBlock Text="Индексирую шрифты…" Style="{StaticResource Caption}" Margin="0,0,0,4" />
                     <ProgressBar Height="4" IsIndeterminate="True" Background="{DynamicResource Line}"
                                  Foreground="{DynamicResource Ink}" BorderThickness="0" />
@@ -217,7 +233,7 @@
                                         </Grid>
                                         <DataTemplate.Triggers>
                                             <DataTrigger Binding="{Binding IsGroup}" Value="True"><Setter TargetName="Disclosure" Property="Visibility" Value="Visible" /></DataTrigger>
-                                            <DataTrigger Binding="{Binding Indent}" Value="True"><Setter TargetName="ItemBody" Property="Margin" Value="16,0,0,0" /></DataTrigger>
+                                            <DataTrigger Binding="{Binding Indent}" Value="True"><Setter TargetName="ItemBody" Property="Margin" Value="46,0,0,0" /></DataTrigger>
                                             <DataTrigger Binding="{Binding HasGlyphs}" Value="False"><Setter TargetName="InlinePreview" Property="Height" Value="25" /></DataTrigger>
                                         </DataTemplate.Triggers>
                                     </DataTemplate>

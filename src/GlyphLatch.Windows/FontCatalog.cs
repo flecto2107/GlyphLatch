@@ -73,7 +73,8 @@ internal sealed class FontCatalog
         KeepVisible(Folders);
         var excludedFonts = new HashSet<string>(hiddenFonts ?? [], StringComparer.OrdinalIgnoreCase);
         Entries = cache.Files
-            .Where(file => FontFile.Supports(file.Path) && (file.Folder == null || visibleFolders.Contains(file.Folder)))
+            .Where(file => file.Font != null && FontFile.Supports(file.Path) &&
+                (file.Folder == null || visibleFolders.Contains(file.Folder)))
             .GroupBy(Identity, StringComparer.OrdinalIgnoreCase)
             .Where(group => !excludedFonts.Contains(group.Key))
             .Select(group =>
@@ -110,7 +111,11 @@ internal sealed class FontCatalog
                 oldFiles[path] = font;
                 return new IndexedPath(folder, path, font, null, source);
             }
-            catch (Exception error) when (error is FileFormatException or IOException or UnauthorizedAccessException
+            catch (Exception error) when (error is FileFormatException or EndOfStreamException)
+            {
+                return new IndexedPath(folder, path, null, "Неверный формат шрифта", source);
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException
                 or ArgumentException or NotSupportedException or System.Runtime.InteropServices.COMException)
             {
                 string issue = error is UnauthorizedAccessException or FileNotFoundException or DirectoryNotFoundException

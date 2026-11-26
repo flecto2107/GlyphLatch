@@ -22,10 +22,10 @@
                 </StackPanel>
             </DockPanel>
             <Grid Grid.Row="1">
-                <TextBox x:Name="Query" Height="36" TextChanged="FilterChanged"
+                <TextBox x:Name="Query" MinHeight="42" Padding="10,5" FontSize="15" TextChanged="FilterChanged"
                          ToolTip="Введите символ, U+0410 или #12" AutomationProperties.Name="Поиск глифов" />
                 <TextBlock x:Name="QueryHint" Text="Символ, U+0410 или #12" Foreground="{DynamicResource Muted}"
-                           IsHitTestVisible="False" VerticalAlignment="Center" Margin="10,0" FontSize="12" />
+                           IsHitTestVisible="False" VerticalAlignment="Center" Margin="11,0" FontSize="13" />
             </Grid>
             <DockPanel Grid.Row="2" Margin="0,7,0,6">
                 <ToggleButton x:Name="AllIds" DockPanel.Dock="Right" Style="{DynamicResource Segment}"

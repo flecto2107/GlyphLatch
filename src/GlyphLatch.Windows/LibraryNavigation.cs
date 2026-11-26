@@ -134,6 +134,27 @@ public partial class MainWindow
         Navigate(null, set.Id, false);
     }
 
+    private void ImportMenu(object sender, RoutedEventArgs e)
+    {
+        if (working || sender is not Button button) return;
+        var menu = MakeMenu();
+        AddMenu(menu, "Шрифты из файлов…", () => ImportFiles(sender, e));
+        AddMenu(menu, "Папку с диска…", () => ImportFolder(sender, e));
+        var destination = CurrentSet()?.Name ?? (folderScope == null ? null : FindFolder(folderScope)?.Name);
+        if (destination != null)
+        {
+            var hint = new TextBlock
+            {
+                Text = $"В «{destination}»", MaxWidth = 250, TextTrimming = TextTrimming.CharacterEllipsis,
+                Style = (Style)FindResource("Caption")
+            };
+            var destinationLabel = new MenuItem { Header = hint, IsEnabled = false, ToolTip = destination };
+            ToolTipService.SetShowOnDisabled(destinationLabel, true);
+            menu.Items.Add(destinationLabel);
+        }
+        OpenMenu(menu, button);
+    }
+
     private async void ImportFiles(object sender, RoutedEventArgs e)
     {
         if (working) return;

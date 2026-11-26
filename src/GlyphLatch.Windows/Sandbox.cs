@@ -348,7 +348,6 @@ public partial class MainWindow
         sandboxLabelA.Visibility = compare ? Visibility.Visible : Visibility.Collapsed;
         foreach (var columns in new[] { sandboxSelectors, sandboxPages })
         {
-            ((FrameworkElement)columns.Children[0]).MaxWidth = compare ? double.PositiveInfinity : 830;
             columns.Children[1].Visibility = compare ? Visibility.Visible : Visibility.Collapsed;
             columns.ColumnDefinitions[1].Width = new GridLength(compare ? 14 : 0);
             columns.ColumnDefinitions[2].Width = compare ? new GridLength(1, GridUnitType.Star) : new GridLength(0);

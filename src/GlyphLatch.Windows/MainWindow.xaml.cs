@@ -664,7 +664,12 @@ public partial class MainWindow : Window
         DigitsPreset.IsChecked = mode == "digits";
         CustomPreset.IsChecked = custom;
         SampleText.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
-        MorePresets.Content = !custom && mode is not ("latin" or "cyrillic" or "digits") ? $"{preset.Name} ▾" : "Ещё ▾";
+        bool moreSelected = !custom && preset.Name != null && mode is not ("latin" or "cyrillic" or "digits");
+        string moreLabel = moreSelected ? $"Другие образцы · {preset.Name}" : "Другие образцы";
+        MorePresets.ToolTip = moreLabel;
+        System.Windows.Automation.AutomationProperties.SetName(MorePresets, moreLabel);
+        if (moreSelected) MorePresets.SetResourceReference(BackgroundProperty, "Selected");
+        else MorePresets.ClearValue(BackgroundProperty);
         SetValue(CatalogSampleProperty, custom ? SampleText.Text : preset.Text ?? Samples[0].Text);
         SetValue(CatalogSampleSizeProperty, SampleSize.Value);
         SetValue(CatalogSampleHeightProperty, Math.Ceiling(SampleSize.Value * 1.36 + 4));
