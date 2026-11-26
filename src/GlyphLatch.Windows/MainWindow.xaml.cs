@@ -91,6 +91,7 @@ public partial class MainWindow : Window
     private CancellationTokenSource? scan;
     private TaskCompletionSource? activationFinished;
     private TrayIcon? tray;
+    private readonly Dictionary<(string Glyph, System.Drawing.Color Ink), System.Drawing.Bitmap> trayMenuImages = [];
     private bool ready;
     private bool working;
     private bool exiting;
@@ -141,6 +142,7 @@ public partial class MainWindow : Window
         LoadInterfaceFonts();
         ApplyThemeResources();
         InitializeComponent();
+        ApplyBrand();
         string version = typeof(MainWindow).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!
             .InformationalVersion.Split('+')[0];
         VersionLabel.Text = $"Версия {version}";
@@ -175,10 +177,11 @@ public partial class MainWindow : Window
         SyncWatchers();
         retrySources.Start();
         await RunActivation(_ => { recovery = activation.ReadRecovery(); return recovery ?? ""; });
-        await RefreshCatalog();
+        await RefreshCatalog(showOverlay: catalog.Cache.Files.Count == 0 &&
+            (library.Links.Count > 0 || library.Folders.Any(folder => folder.Source != null)));
     }
 
-    private async Task RefreshCatalog(HashSet<string>? sources = null)
+    private async Task RefreshCatalog(HashSet<string>? sources = null, bool showOverlay = false)
     {
         if (exiting) return;
         scan?.Cancel();
@@ -190,8 +193,7 @@ public partial class MainWindow : Window
         var hiddenFonts = library.HiddenFonts.ToArray();
         var hiddenFolders = library.HiddenFolders.ToArray();
         var aliases = new Dictionary<string, string>(library.FolderAliases);
-        CancelScanButton.Visibility = Visibility.Visible;
-        ScanIndicator.Visibility = Visibility.Visible;
+        if (showOverlay) _ = ShowLoadingAfterDelay(cancellation);
         Report("Читаю папки и метаданные шрифтов…");
         try
         {
@@ -228,8 +230,7 @@ public partial class MainWindow : Window
             if (scan == cancellation)
             {
                 scan = null;
-                CancelScanButton.Visibility = Visibility.Collapsed;
-                ScanIndicator.Visibility = Visibility.Collapsed;
+                HideLoading();
             }
         }
     }
@@ -347,7 +348,8 @@ public partial class MainWindow : Window
                 string status = active == available.Length ? " · Включено в Windows"
                     : active > 0 ? $" · Частично включено {active}/{available.Length}" : "";
                 bool folded = query.Length == 0 ? !expanded.Contains(key) : foldedInSearch.Contains(key);
-                rows.Add(ToRow(key, family.Key, $"{available.Length} начерт.{status}", available, true, false, folded ? "›" : "⌄"));
+                rows.Add(ToRow(key, family.Key, $"{available.Length} начерт.{status}", available, true, false,
+                    folded ? "chevron-right" : "chevron-down"));
                 if (folded) continue;
             }
             foreach (var font in visible)
@@ -387,7 +389,10 @@ public partial class MainWindow : Window
             EmptyListText.Text = "Добавьте шрифты или перетащите папку из Проводника.";
         EmptyImportButton.Visibility = scoped.Length == 0 && !onlyActive ? Visibility.Visible : Visibility.Collapsed;
         EmptyList.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        ActiveBadge.Text = activation.ActiveCount > 0 ? activation.ActiveCount.ToString() : "";
+        AllBadge.Text = catalog.Entries.Count.ToString("N0");
+        ActiveBadge.Text = activation.ActiveCount.ToString("N0");
+        System.Windows.Automation.AutomationProperties.SetHelpText(AllButton, $"Начертаний в библиотеке: {AllBadge.Text}");
+        System.Windows.Automation.AutomationProperties.SetHelpText(ActiveButton, $"Активных начертаний: {ActiveBadge.Text}");
         RetryButton.Visibility = activation.HasUnresolved ? Visibility.Visible : Visibility.Collapsed;
         DisableAllButton.Visibility = activation.ActiveCount > 0 || activation.SelectedSet != null ? Visibility.Visible : Visibility.Collapsed;
         RenderDetails();
@@ -427,18 +432,20 @@ public partial class MainWindow : Window
         DetailOff.IsEnabled = canDisable;
         DetailOff.Visibility = batch && canEnable && canDisable ? Visibility.Visible : Visibility.Collapsed;
         AddToSetButton.IsEnabled = selected.Any(font => font.Font != null);
+        GlyphAction.IsEnabled = PreviewEntry is { Available: true, Font: not null };
         if (Glyphs.Visibility == Visibility.Visible)
         {
-            if (PreviewEntry is { } entry) _ = Glyphs.ShowFont(entry, PreviewCache);
+            if (PreviewEntry is { Available: true, Font: not null } entry) _ = Glyphs.ShowFont(entry, PreviewCache);
             else CloseGlyphs();
         }
     }
 
-    private void OpenRowGlyphs(object sender, RoutedEventArgs e)
+    private void ToggleGlyphs(object sender, RoutedEventArgs e) => ToggleGlyphs();
+
+    private void ToggleGlyphs()
     {
-        if (sender is not Button { Tag: FontRow { HasGlyphs: true } row }) return;
-        if (!ReferenceEquals(FontList.SelectedItem, row)) FontList.SelectedItem = row;
-        OpenGlyphs(row.SampleFont);
+        if (Glyphs.Visibility == Visibility.Visible) CloseGlyphs();
+        else if (PreviewEntry is { Available: true, Font: not null } entry) OpenGlyphs(entry);
     }
 
     private void OpenGlyphs(FontEntry entry)
@@ -446,6 +453,7 @@ public partial class MainWindow : Window
         GlyphColumn.Width = new GridLength(299);
         GlyphGap.Width = new GridLength(10);
         Glyphs.Visibility = Visibility.Visible;
+        GlyphAction.IsChecked = true;
         UpdateSidebarLimit();
         _ = Glyphs.ShowFont(entry, PreviewCache);
     }
@@ -454,6 +462,7 @@ public partial class MainWindow : Window
     {
         Glyphs.Clear();
         Glyphs.Visibility = Visibility.Collapsed;
+        GlyphAction.IsChecked = false;
         GlyphColumn.Width = new GridLength(0);
         UpdateSidebarLimit();
         GlyphGap.Width = new GridLength(0);
@@ -507,7 +516,7 @@ public partial class MainWindow : Window
 
     private void Report(string message)
     {
-        FooterStatus.Text = !string.IsNullOrWhiteSpace(message) ? message : recovery ?? "Шрифты остаются в исходных папках.";
+        FooterStatus.Text = !string.IsNullOrWhiteSpace(message) ? message : recovery ?? "";
     }
 
     private void SearchChanged(object sender, TextChangedEventArgs e)
@@ -527,6 +536,12 @@ public partial class MainWindow : Window
 
     private async void WindowKeyDown(object sender, KeyEventArgs e)
     {
+        if (LoadingOverlay.Visibility == Visibility.Visible)
+        {
+            if (e.Key == Key.Escape) scan?.Cancel();
+            if (e.Key is not (Key.Tab or Key.Enter or Key.Space)) e.Handled = true;
+            return;
+        }
         if (sandboxOpen)
         {
             if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)
@@ -566,8 +581,8 @@ public partial class MainWindow : Window
         }
         else if (Keyboard.Modifiers == ModifierKeys.None && e.Key == Key.Escape && SearchBox.IsKeyboardFocusWithin)
             SearchBox.Clear();
-        else if (Keyboard.Modifiers == ModifierKeys.None && e.Key == Key.F4 && PreviewEntry is { Available: true } entry)
-            OpenGlyphs(entry);
+        else if (Keyboard.Modifiers == ModifierKeys.None && e.Key == Key.F4)
+            ToggleGlyphs();
         else if (Keyboard.Modifiers == ModifierKeys.None && e.Key == Key.Escape && Glyphs.Visibility == Visibility.Visible)
             CloseGlyphs();
         else return;
@@ -631,7 +646,7 @@ public partial class MainWindow : Window
     }
     private async void RetryClick(object sender, RoutedEventArgs e) => await RunActivation(activation.Retry);
     private async void DisableAllClick(object sender, RoutedEventArgs e) => await RunActivation(activation.DisableAll);
-    private async void RefreshClick(object sender, RoutedEventArgs e) => await RefreshCatalog();
+    private async void RefreshClick(object sender, RoutedEventArgs e) => await RefreshCatalog(showOverlay: true);
     private void CancelScan(object sender, RoutedEventArgs e) => scan?.Cancel();
     private void SampleChanged(object sender, TextChangedEventArgs e) => UpdateSample();
     private void SampleSizeChanged(object sender, RoutedPropertyChangedEventArgs<double> e) => UpdateSample();
@@ -698,6 +713,7 @@ public partial class MainWindow : Window
     {
         library.Dark = ThemeButton.IsChecked == true;
         ApplyThemeResources();
+        ApplyBrand();
         ApplyTitleBar();
         RenderNavigation();
         RenderDetails();
@@ -711,8 +727,8 @@ public partial class MainWindow : Window
             ("Canvas", "#F4F4F4", "#111111"), ("Rail", "#EDEDED", "#171717"), ("Panel", "#FFFFFF", "#1C1C1C"),
             ("Ink", "#111111", "#F5F5F5"), ("Muted", "#595959", "#B7B7B7"), ("Line", "#D9D9D9", "#383838"),
             ("Hover", "#F0F0F0", "#282828"), ("Selected", "#E9E9E9", "#303030"),
-            ("SelectedLine", "#C4C4C4", "#505050"), ("Focus", "#555555", "#CCCCCC"), ("LogoDot", "#B5B5B5", "#777777"),
-            ("LampOff", "#8E8E8E", "#737373"), ("LampOn", "#168644", "#3AC975")
+            ("SelectedLine", "#C4C4C4", "#505050"), ("Focus", "#555555", "#CCCCCC"),
+            ("LampOff", "#8E8E8E", "#737373"), ("LampOn", "#168644", "#3AC975"), ("ScanScrim", "#55F4F4F4", "#70111111")
         ];
         foreach (var item in palette)
         {
@@ -733,6 +749,12 @@ public partial class MainWindow : Window
         if (window != IntPtr.Zero) _ = DwmSetWindowAttribute(window, 20, ref dark, sizeof(int));
     }
 
+    private void ApplyBrand()
+    {
+        BrandLogo.Source = VectorAssets.Logo(library.Dark);
+        Icon = VectorAssets.CaptionIcon(library.Dark);
+    }
+
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr window, int attribute, ref int value, int size);
 
@@ -740,11 +762,7 @@ public partial class MainWindow : Window
     {
         var handle = new WindowInteropHelper(this).Handle;
         if (HwndSource.FromHwnd(handle) is not HwndSource source) return;
-        string assembly = typeof(MainWindow).Assembly.GetName().Name!;
-        var resource = Application.GetResourceStream(new Uri($"/{assembly};component/Assets/glyphlatch.ico", UriKind.Relative));
-        using var stream = resource.Stream;
-        using var temporary = new System.Drawing.Icon(stream);
-        tray = new TrayIcon(source, (System.Drawing.Icon)temporary.Clone(), PopulateTrayMenu, ShowFromTray);
+        tray = new TrayIcon(source, PopulateTrayMenu, ShowFromTray);
         if (!tray.IsRegistered) store.Diagnostic("Не удалось зарегистрировать значок GlyphLatch в трее.");
     }
 
@@ -753,13 +771,21 @@ public partial class MainWindow : Window
         var colors = new TrayMenuColors(library.Dark);
         menu.Renderer = new TrayMenuRenderer(colors);
         menu.ForeColor = colors.Text;
-        foreach (var old in menu.Items.OfType<Forms.ToolStripItem>().ToArray()) old.Dispose();
+        foreach (var old in menu.Items.OfType<Forms.ToolStripItem>().ToArray())
+        {
+            if (old is Forms.ToolStripMenuItem { HasDropDownItems: true } submenu) submenu.DropDown.Dispose();
+            old.Dispose();
+        }
         menu.Items.Clear();
-        menu.Items.Add("Открыть GlyphLatch", null, (_, _) => ShowFromTray());
-        var sets = new Forms.ToolStripMenuItem("Наборы") { Enabled = !working && library.Sets.Count > 0 };
+        menu.Items.Add("Открыть GlyphLatch", Image("library-big"), (_, _) => ShowFromTray());
+        var sets = new Forms.ToolStripMenuItem("Наборы", Image("layers"))
+        {
+            Enabled = !working && library.Sets.Count > 0,
+            DropDown = new TraySetsMenu(colors.ToolStripDropDownBackground)
+        };
         sets.DropDown.ForeColor = colors.Text;
         sets.DropDown.Renderer = menu.Renderer;
-        sets.DropDownItems.Add("Выключить набор", null, (_, _) => _ = RunActivation(map => activation.SelectSet(null, map)));
+        sets.DropDownItems.Add("Выключить набор", Image("power"), (_, _) => _ = RunActivation(map => activation.SelectSet(null, map)));
         foreach (var set in library.Sets)
         {
             var item = new Forms.ToolStripMenuItem(set.Name) { Checked = set.Id == activation.SelectedSet };
@@ -767,9 +793,17 @@ public partial class MainWindow : Window
             sets.DropDownItems.Add(item);
         }
         menu.Items.Add(sets);
-        menu.Items.Add("Выключить все шрифты", null, (_, _) => _ = RunActivation(activation.DisableAll)).Enabled
+        menu.Items.Add("Выключить все шрифты", Image("power"), (_, _) => _ = RunActivation(activation.DisableAll)).Enabled
             = !working && (activation.ActiveCount > 0 || activation.SelectedSet != null);
-        menu.Items.Add("Выйти из GlyphLatch", null, (_, _) => _ = Quit());
+        menu.Items.Add("Закрыть GlyphLatch", Image("log-out"), (_, _) => _ = Quit());
+
+        System.Drawing.Bitmap Image(string glyph)
+        {
+            var key = (glyph, colors.Text);
+            if (!trayMenuImages.TryGetValue(key, out var image))
+                trayMenuImages.Add(key, image = VectorAssets.MenuIcon(glyph, colors.Text));
+            return image;
+        }
     }
 
     internal void ShowFromTray()
@@ -819,6 +853,7 @@ public partial class MainWindow : Window
         retrySources.Stop();
         foreach (var watcher in watchers.Values) watcher.Dispose();
         tray?.Dispose();
+        foreach (var image in trayMenuImages.Values) image.Dispose();
         canClose = true;
         Close();
     }

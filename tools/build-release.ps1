@@ -1,15 +1,19 @@
 param(
     [string]$Dotnet = 'dotnet',
     [string]$InnoCompiler,
+    [string]$LocalLoadingGlyphs,
     [switch]$NoRestore
 )
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $root 'src/GlyphLatch.Windows/GlyphLatch.Windows.csproj'
-$publish = Join-Path $root 'artifacts/release-win-x64'
+$localBuild = [bool]$LocalLoadingGlyphs
+$suffix = if ($localBuild) { '-local' } else { '' }
+$publish = Join-Path $root "artifacts/release$suffix-win-x64"
 $artifacts = Join-Path $root 'artifacts'
 $license = Join-Path $root 'src/GlyphLatch.Windows/Assets/Fonts/OFL-Medeo.txt'
+$iconLicense = Join-Path $root 'src/GlyphLatch.Windows/Assets/Lucide/LICENSE-Lucide.txt'
 
 if (!$InnoCompiler) {
     $InnoCompiler = (Get-Command ISCC.exe -ErrorAction SilentlyContinue).Source
@@ -41,10 +45,19 @@ $version = (Get-Item -LiteralPath $exe).VersionInfo.ProductVersion.Split('+')[0]
 if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Ожидалась числовая версия из трёх частей. Получено $version." }
 
 $setupScript = Join-Path $root 'installer/GlyphLatch.iss'
-& $InnoCompiler "/DAppVersion=$version" "/DPublishDir=$publish" "/O$artifacts" $setupScript
+$installerArgs = @("/DAppVersion=$version", "/DPublishDir=$publish", "/O$artifacts")
+$portableFiles = @($exe, $license, $iconLicense)
+if ($localBuild) {
+    $source = (Resolve-Path -LiteralPath $LocalLoadingGlyphs).Path
+    $sidecar = Join-Path $publish 'LoadingGlyphs.local.txt'
+    if ($source -ne $sidecar) { Copy-Item -LiteralPath $source -Destination $sidecar -Force }
+    $installerArgs += @('/DLocalLoadingGlyphs', "/FGlyphLatch-Setup-$version-win-x64$suffix")
+    $portableFiles += $sidecar
+}
+& $InnoCompiler @installerArgs $setupScript
 if ($LASTEXITCODE -ne 0) { throw "Сборка установщика завершилась с кодом $LASTEXITCODE." }
 
-$setup = Join-Path $artifacts "GlyphLatch-Setup-$version-win-x64.exe"
-$portable = Join-Path $artifacts "GlyphLatch-Portable-$version-win-x64.zip"
-Compress-Archive -LiteralPath @($exe, $license) -DestinationPath $portable -Force
+$setup = Join-Path $artifacts "GlyphLatch-Setup-$version-win-x64$suffix.exe"
+$portable = Join-Path $artifacts "GlyphLatch-Portable-$version-win-x64$suffix.zip"
+Compress-Archive -LiteralPath $portableFiles -DestinationPath $portable -Force
 Get-Item -LiteralPath @($setup, $portable) | Select-Object FullName, Length

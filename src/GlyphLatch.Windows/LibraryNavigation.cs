@@ -76,7 +76,7 @@ public partial class MainWindow
         }
     }
 
-    private string? ImportParent => folderScope;
+    private string? ImportParent => folderScope == FontCatalog.LooseFilesFolderId ? null : folderScope;
 
     private SetSpec? CurrentSet() => library.Sets.FirstOrDefault(set => set.Id == setScope);
 
@@ -138,8 +138,8 @@ public partial class MainWindow
     {
         if (working || sender is not Button button) return;
         var menu = MakeMenu();
-        AddMenu(menu, "Шрифты из файлов…", () => ImportFiles(sender, e));
-        AddMenu(menu, "Папку с диска…", () => ImportFolder(sender, e));
+        AddMenu(menu, "Шрифты из файлов…", () => ImportFiles(sender, e), "files");
+        AddMenu(menu, "Папку с диска…", () => ImportFolder(sender, e), "folder-open");
         var destination = CurrentSet()?.Name ?? (folderScope == null ? null : FindFolder(folderScope)?.Name);
         if (destination != null)
         {
@@ -177,7 +177,7 @@ public partial class MainWindow
     private void OnDragOver(object sender, DragEventArgs e)
     {
         e.Effects = DragDropEffects.None;
-        if (!working && e.Data.GetDataPresent(DataFormats.FileDrop))
+        if (!working && LoadingOverlay.Visibility != Visibility.Visible && e.Data.GetDataPresent(DataFormats.FileDrop))
         {
             e.Effects = e.AllowedEffects.HasFlag(DragDropEffects.Link) ? DragDropEffects.Link : DragDropEffects.Copy;
             var (folder, set) = DropDestination(e.OriginalSource as DependencyObject);
@@ -203,7 +203,7 @@ public partial class MainWindow
     private async void OnDrop(object sender, DragEventArgs e)
     {
         RestoreDropHint();
-        if (!working && e.Data.GetData(DataFormats.FileDrop) is string[] paths)
+        if (!working && LoadingOverlay.Visibility != Visibility.Visible && e.Data.GetData(DataFormats.FileDrop) is string[] paths)
         {
             e.Handled = true;
             var (folder, set) = DropDestination(e.OriginalSource as DependencyObject);
@@ -223,6 +223,7 @@ public partial class MainWindow
 
     private async Task ImportPaths(string[] paths, string? parent, SetSpec? set)
     {
+        if (parent == FontCatalog.LooseFilesFolderId) parent = null;
         var created = new HashSet<string>();
         var roots = new HashSet<string>();
         var files = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -257,6 +258,7 @@ public partial class MainWindow
                 string id = identity == null ? $"path:{path}" : FontCatalog.Identity(identity);
                 if (library.HiddenFonts.RemoveAll(hidden => string.Equals(hidden, id, StringComparison.OrdinalIgnoreCase)) > 0)
                     imports++;
+                if (set != null && catalog.Entries.Any(entry => entry.Id == id)) continue;
                 if (!library.Links.Any(link => link.Folder == parent && string.Equals(link.Path, path, StringComparison.OrdinalIgnoreCase)))
                 {
                     library.Links.Add(new FontLink(parent, path));
@@ -278,7 +280,7 @@ public partial class MainWindow
         }
         else if (imports > 0)
         {
-            folderScope = parent;
+            folderScope = parent ?? (folderScope == FontCatalog.LooseFilesFolderId ? folderScope : null);
             setScope = null;
             onlyActive = false;
         }
@@ -289,7 +291,7 @@ public partial class MainWindow
         }
         SetSandboxVisibility(false);
         SaveSettings();
-        await RefreshCatalog(created);
+        await RefreshCatalog(created, showOverlay: true);
         if (set != null && library.Sets.Any(existing => existing.Id == set.Id))
         {
             var ids = catalog.Entries.Where(entry => entry.Font != null &&
@@ -306,9 +308,9 @@ public partial class MainWindow
         bool active = activation.SelectedSet == set.Id;
         var menu = MakeMenu();
         AddMenu(menu, active ? "Выключить набор" : "Включить набор",
-            async () => await RunActivation(map => activation.SelectSet(active ? null : set, map)));
+            async () => await RunActivation(map => activation.SelectSet(active ? null : set, map)), "power");
         if (active && activation.HasUnresolved)
-            AddMenu(menu, "Повторить ошибки", async () => await RunActivation(activation.Retry));
+            AddMenu(menu, "Повторить ошибки", async () => await RunActivation(activation.Retry), "refresh-cw");
         AddMenu(menu, "Переименовать", () =>
         {
             string? name = AskName("Переименовать набор", set.Name);
@@ -322,7 +324,7 @@ public partial class MainWindow
             library.Sets[library.Sets.IndexOf(set)] = set with { Name = name };
             SaveSettings();
             RenderNavigation();
-        });
+        }, "pencil");
         AddMenu(menu, "Удалить набор", async () =>
         {
             library.Sets.Remove(set);
@@ -334,7 +336,7 @@ public partial class MainWindow
                 RenderNavigation();
                 RenderFonts();
             }
-        });
+        }, "x");
         OpenMenu(menu, button);
     }
 
@@ -348,31 +350,43 @@ public partial class MainWindow
             .Select(font => font.Id).ToArray();
         if (ids.Length > 0)
         {
-            AddMenu(menu, "Включить папку", async () => await RunActivation(map => activation.SetManual(ids, true, map)));
-            AddMenu(menu, "Выключить папку", async () => await RunActivation(map => activation.SetManual(ids, false, map)));
+            AddMenu(menu, "Включить папку", async () => await RunActivation(map => activation.SetManual(ids, true, map)), "power");
+            AddMenu(menu, "Выключить папку", async () => await RunActivation(map => activation.SetManual(ids, false, map)), "power");
         }
-        AddMenu(menu, "Обновить", async () => await RefreshCatalog());
-        AddMenu(menu, "Переименовать в библиотеке", async () =>
-        {
-            string? name = AskName("Переименовать папку", node.Name);
-            if (name == null) return;
-            int index = library.Folders.FindIndex(folder => folder.Id == node.Id);
-            if (index >= 0) library.Folders[index] = library.Folders[index] with { Name = name };
-            else library.FolderAliases[node.Id] = name;
-            SaveSettings();
-            await RefreshCatalog([]);
-        });
-        AddMenu(menu, "Убрать папку из библиотеки", async () =>
-        {
-            if (!node.Editable) library.HiddenFolders.Add(node.Id);
-            library.Folders.RemoveAll(spec => descendants.Contains(spec.Id));
-            library.Links.RemoveAll(link => link.Folder != null && descendants.Contains(link.Folder));
-            foreach (string id in descendants) library.FolderAliases.Remove(id);
-            if (folderScope != null && descendants.Contains(folderScope)) folderScope = null;
-            SaveSettings();
-            await RefreshCatalog([]);
-        });
+        AddMenu(menu, "Обновить", async () => await RefreshCatalog(showOverlay: true), "refresh-cw");
+        bool looseFiles = node.Id == FontCatalog.LooseFilesFolderId;
+        if (!looseFiles)
+            AddMenu(menu, "Переименовать в библиотеке", async () =>
+            {
+                string? name = AskName("Переименовать папку", node.Name);
+                if (name == null) return;
+                int index = library.Folders.FindIndex(folder => folder.Id == node.Id);
+                if (index >= 0) library.Folders[index] = library.Folders[index] with { Name = name };
+                else library.FolderAliases[node.Id] = name;
+                SaveSettings();
+                await RefreshCatalog([]);
+            }, "pencil");
+        AddMenu(menu, looseFiles ? "Убрать отдельные файлы из библиотеки" : "Убрать папку из библиотеки",
+            async () => await RemoveFolder(node), "x");
         OpenMenu(menu, button);
+    }
+
+    private async Task RemoveFolder(FolderNode node)
+    {
+        if (working) return;
+        var descendants = Descendants(node).Select(child => child.Id).ToHashSet();
+        bool RemovesLocation(string? folder) => descendants.Contains(folder ?? FontCatalog.LooseFilesFolderId);
+        var orphans = catalog.Entries.Where(font => font.Locations.All(location => RemovesLocation(location.Folder)))
+            .Select(font => font.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (!node.Editable) library.HiddenFolders.Add(node.Id);
+        library.Folders.RemoveAll(spec => descendants.Contains(spec.Id));
+        library.Links.RemoveAll(link => RemovesLocation(link.Folder));
+        foreach (string id in descendants) library.FolderAliases.Remove(id);
+        if (folderScope != null && descendants.Contains(folderScope)) folderScope = null;
+        foreach (var set in library.Sets) set.Fonts.RemoveAll(orphans.Contains);
+        SaveSettings();
+        if (orphans.Count > 0) await RunActivation(map => activation.ForgetFonts(orphans.ToArray(), map));
+        await RefreshCatalog([]);
     }
 
     private void DetailsMenu(object sender, RoutedEventArgs e)
@@ -381,22 +395,22 @@ public partial class MainWindow
         FontEntry font = row.SampleFont;
         var menu = MakeMenu();
         if (row.IsPartial)
-            AddMenu(menu, "Выключить включённые начертания", async () => await ApplyRowActivation(row, false));
+            AddMenu(menu, "Выключить включённые начертания", async () => await ApplyRowActivation(row, false), "power");
         var selectedSet = CurrentSet();
         if (selectedSet == null && activation.IsHeldBySet(font.Id))
             selectedSet = library.Sets.FirstOrDefault(set => set.Id == activation.SelectedSet);
         if (selectedSet is { } removeFrom && removeFrom.Fonts.Contains(font.Id))
             AddMenu(menu, $"Убрать из набора «{removeFrom.Name}»",
-                async () => await ChangeSetMembership(removeFrom, [font.Id], false));
+                async () => await ChangeSetMembership(removeFrom, [font.Id], false), "x");
 
         if (row.Entries.Any(entry => catalog.Entries.Contains(entry)))
             AddMenu(menu, row.IsGroup ? "Убрать гарнитуру из библиотеки" : "Убрать из библиотеки",
-                async () => await RemoveFonts(row.Entries));
+                async () => await RemoveFonts(row.Entries), "x");
         AddMenu(menu, "Скопировать путь", () =>
         {
             try { Clipboard.SetText(font.Path); }
             catch (System.Runtime.InteropServices.COMException) { Report("Буфер обмена занят. Повторите копирование."); }
-        });
+        }, "copy");
         OpenMenu(menu, (Button)sender);
     }
 
@@ -408,7 +422,8 @@ public partial class MainWindow
         var menu = MakeMenu();
         foreach (var set in library.Sets)
         {
-            var option = new MenuItem { Header = set.Name, IsEnabled = ids.Any(id => !set.Fonts.Contains(id)) };
+            var option = MakeIconMenuItem(set.Name, "layers");
+            option.IsEnabled = ids.Any(id => !set.Fonts.Contains(id));
             option.Click += async (_, _) => await ChangeSetMembership(set, ids, true);
             menu.Items.Add(option);
         }
@@ -427,7 +442,7 @@ public partial class MainWindow
             SaveSettings();
             RenderNavigation();
             Report($"В набор «{name}» добавлено: {ids.Length}.");
-        });
+        }, "plus");
         OpenMenu(menu, (Button)sender);
     }
 
@@ -475,13 +490,29 @@ public partial class MainWindow
         var menu = new ContextMenu { Style = (Style)FindResource("ActionMenu") };
         menu.Resources[typeof(MenuItem)] = FindResource("ActionMenuItem");
         menu.Resources[MenuItem.SeparatorStyleKey] = FindResource("ActionMenuSeparator");
+        menu.Resources[typeof(ScrollViewer)] = FindResource(typeof(ScrollViewer));
         menu.Resources[typeof(ScrollBar)] = FindResource(typeof(ScrollBar));
         return menu;
     }
 
-    private static void AddMenu(ContextMenu menu, string title, Action action)
+    private static MenuItem MakeIconMenuItem(string title, string glyph)
     {
-        var item = new MenuItem { Header = title };
+        var item = new MenuItem { Header = IconLabel(title, glyph) };
+        System.Windows.Automation.AutomationProperties.SetName(item, title);
+        return item;
+    }
+
+    private static StackPanel IconLabel(string title, string glyph)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal };
+        row.Children.Add(new LucideIcon { Glyph = glyph, Width = 15, Height = 15, Margin = new Thickness(0, 0, 7, 0) });
+        row.Children.Add(new TextBlock { Text = title, VerticalAlignment = VerticalAlignment.Center });
+        return row;
+    }
+
+    private static void AddMenu(ContextMenu menu, string title, Action action, string? glyph = null)
+    {
+        var item = glyph == null ? new MenuItem { Header = title } : MakeIconMenuItem(title, glyph);
         item.Click += (_, _) => action();
         menu.Items.Add(item);
     }

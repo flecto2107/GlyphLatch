@@ -36,8 +36,8 @@ RestartApplications=no
 Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 
 [Messages]
-russian.SetupAppRunningError=GlyphLatch работает. Выберите «Выйти из GlyphLatch» в меню трея, затем нажмите «OK», чтобы продолжить установку.
-russian.UninstallAppRunningError=GlyphLatch работает. Выберите «Выйти из GlyphLatch» в меню трея, затем нажмите «OK», чтобы продолжить удаление.
+russian.SetupAppRunningError=GlyphLatch работает. Выберите «Закрыть GlyphLatch» в меню трея, затем нажмите «OK», чтобы продолжить установку.
+russian.UninstallAppRunningError=GlyphLatch работает. Выберите «Закрыть GlyphLatch» в меню трея, затем нажмите «OK», чтобы продолжить удаление.
 
 [Tasks]
 Name: "desktopicon"; Description: "Создать ярлык на рабочем столе"; Flags: unchecked
@@ -45,6 +45,10 @@ Name: "desktopicon"; Description: "Создать ярлык на рабочем
 [Files]
 Source: "{#PublishDir}\GlyphLatch.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\src\GlyphLatch.Windows\Assets\Fonts\OFL-Medeo.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\src\GlyphLatch.Windows\Assets\Lucide\LICENSE-Lucide.txt"; DestDir: "{app}"; Flags: ignoreversion
+#ifdef LocalLoadingGlyphs
+Source: "{#PublishDir}\LoadingGlyphs.local.txt"; DestDir: "{app}"; Flags: ignoreversion
+#endif
 
 [Icons]
 Name: "{group}\GlyphLatch"; Filename: "{app}\GlyphLatch.exe"

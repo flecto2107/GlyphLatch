@@ -30,14 +30,17 @@ public partial class MainWindow
     private void InitializeSandboxPicker()
     {
         var panel = new DockPanel { Width = 304, Margin = new Thickness(5) };
-        sandboxFontQuery = new TextBox { MinHeight = 34, Margin = new Thickness(1, 1, 1, 5) };
+        sandboxFontQuery = new TextBox { MinHeight = 34, Margin = new Thickness(1, 1, 1, 5), Padding = new Thickness(29, 5, 9, 5) };
         AutomationProperties.SetName(sandboxFontQuery, "Поиск начертания");
         var search = new Grid();
         search.Children.Add(sandboxFontQuery);
+        var searchIcon = new LucideIcon { Glyph = "search", HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(8, 0, 0, 4) };
+        searchIcon.SetResourceReference(LucideIcon.ForegroundProperty, "Muted");
+        search.Children.Add(searchIcon);
         var placeholder = new TextBlock
         {
             Text = "Поиск начертания", Style = (Style)FindResource("Caption"),
-            VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(11, 0, 0, 4), IsHitTestVisible = false
+            VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(30, 0, 0, 4), IsHitTestVisible = false
         };
         search.Children.Add(placeholder);
         DockPanel.SetDock(search, Dock.Top);

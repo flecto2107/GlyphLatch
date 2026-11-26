@@ -76,7 +76,7 @@ public partial class MainWindow
     private void UpdateSidebarLimit()
     {
         if (ActualWidth <= 0) return;
-        double reserved = !sandboxOpen && Glyphs.Visibility == Visibility.Visible ? 769 : 630;
+        double reserved = sandboxOpen ? 630 : Glyphs.Visibility == Visibility.Visible ? 769 : 708;
         SidebarColumn.MaxWidth = Math.Clamp(ActualWidth - reserved, SidebarColumn.MinWidth, 465);
     }
 
@@ -99,7 +99,7 @@ public partial class MainWindow
         header.Children.Add(sandboxStatus);
         sandboxSelectors = SandboxColumns();
         sandboxSelectors.HorizontalAlignment = HorizontalAlignment.Left;
-        sandboxSelectors.Margin = new Thickness(0, 0, 0, 9);
+        sandboxSelectors.Margin = new Thickness(0, 17, 0, 15);
         header.Children.Add(sandboxSelectors);
         sandboxPages = SandboxColumns();
         sandboxLabelA = new TextBlock { Text = "A", Style = (Style)FindResource("Caption") };
@@ -128,13 +128,15 @@ public partial class MainWindow
         actions.Children.Add(right);
         var sizes = new ToggleButton
         {
-            Content = "Размеры", Style = (Style)FindResource("Segment"), Margin = new Thickness(0, 0, 4, 0)
+            Content = IconLabel("Размеры", "sliders-horizontal"), Style = (Style)FindResource("Segment"), Margin = new Thickness(0, 0, 4, 0)
         };
+        AutomationProperties.SetName(sizes, "Размеры");
         right.Children.Add(sizes);
         sandboxCompare = new ToggleButton
         {
-            Content = "Сравнить A/B", Style = (Style)FindResource("Segment")
+            Content = IconLabel("Сравнить A/B", "columns-2"), Style = (Style)FindResource("Segment")
         };
+        AutomationProperties.SetName(sandboxCompare, "Сравнить A/B");
         sandboxCompare.Click += (_, _) => ToggleSandboxComparison();
         right.Children.Add(sandboxCompare);
 
@@ -156,7 +158,7 @@ public partial class MainWindow
             };
         }
 
-        var sizeOptions = new UniformGrid { Columns = 3, Margin = new Thickness(0, 8, 0, 0), Visibility = Visibility.Collapsed };
+        var sizeOptions = new UniformGrid { Columns = 3, Margin = new Thickness(0, 16, 0, 0), Visibility = Visibility.Collapsed };
         sizes.Click += (_, _) => sizeOptions.Visibility = sizes.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         toolbar.Children.Add(sizeOptions);
         for (int index = 0; index < SandboxRoles.Length; index++) sizeOptions.Children.Add(BuildSandboxSize(index));
@@ -210,11 +212,10 @@ public partial class MainWindow
         var composition = new StackPanel();
         var paper = new Border
         {
-            Child = composition, CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(1),
+            Child = composition, CornerRadius = new CornerRadius(8),
             Padding = new Thickness(20, 19, 20, 23), MinHeight = 235, VerticalAlignment = VerticalAlignment.Top
         };
         paper.SetResourceReference(Border.BackgroundProperty, "Panel");
-        paper.SetResourceReference(Border.BorderBrushProperty, "Line");
         for (int index = 0; index < SandboxRoles.Length; index++)
         {
             var role = new StackPanel { Margin = new Thickness(index == 0 ? 0 : 5, 0, 0, 0) };
@@ -240,14 +241,15 @@ public partial class MainWindow
         string variant = side == 0 ? "A" : "B";
         var label = new TextBlock { TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
         var buttonContent = new DockPanel();
-        var arrow = new TextBlock { Text = "⌄", Margin = new Thickness(5, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        var arrow = new LucideIcon { Glyph = "chevron-down", Width = 13, Height = 13, Margin = new Thickness(4, 0, 0, 0) };
         DockPanel.SetDock(arrow, Dock.Right);
         buttonContent.Children.Add(arrow);
         buttonContent.Children.Add(label);
         var fontButton = new Button
         {
             Content = buttonContent, MinWidth = 0, MinHeight = 32, FontSize = 12,
-            Padding = new Thickness(6, 3, 6, 3), HorizontalContentAlignment = HorizontalAlignment.Stretch
+            Padding = new Thickness(7, 3, 7, 3), BorderThickness = new Thickness(0),
+            HorizontalContentAlignment = HorizontalAlignment.Stretch
         };
         AutomationProperties.SetName(fontButton, $"Выбрать шрифт · {role} · {variant}");
         fontButton.Click += (_, _) => OpenSandboxPicker(fontButton, side, index);

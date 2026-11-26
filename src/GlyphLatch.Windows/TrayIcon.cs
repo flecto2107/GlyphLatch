@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
 using System.Windows.Threading;
@@ -36,6 +37,30 @@ internal sealed class TrayMenuRenderer(TrayMenuColors colors) : Forms.ToolStripP
     }
 }
 
+internal sealed class TraySetsMenu(Color surface) : Forms.ToolStripDropDownMenu
+{
+    protected override void OnPaint(Forms.PaintEventArgs e)
+    {
+        base.OnPaint(e);
+        if (Items.Count == 0) return;
+        var viewport = DisplayRectangle;
+        int depth = Math.Min(12 * DeviceDpi / 96, viewport.Height / 4);
+        if (depth <= 0 || ClientSize.Width <= 2) return;
+
+        if (Items[0].Bounds.Top < viewport.Top)
+            Fade(viewport.Top, surface, Color.FromArgb(0, surface));
+        if (Items[^1].Bounds.Bottom > viewport.Bottom)
+            Fade(viewport.Bottom - depth, Color.FromArgb(0, surface), surface);
+
+        void Fade(int y, Color start, Color end)
+        {
+            var area = new Rectangle(1, y, ClientSize.Width - 2, depth);
+            using var brush = new LinearGradientBrush(area, start, end, LinearGradientMode.Vertical);
+            e.Graphics.FillRectangle(brush, area);
+        }
+    }
+}
+
 internal sealed class TrayIcon : IDisposable
 {
     private const int CallbackMessage = 0x8001;
@@ -43,8 +68,11 @@ internal sealed class TrayIcon : IDisposable
     private const int ContextMenu = 0x007B;
     private const int Select = 0x0400;
     private const int KeySelect = 0x0401;
+    private const int SettingChange = 0x001A;
+    private const int ThemeChanged = 0x031A;
     private readonly HwndSource source;
-    private readonly Icon icon;
+    private Icon icon;
+    private bool darkTaskbar;
     private readonly Forms.ContextMenuStrip menu = new();
     private readonly DispatcherTimer timer;
     private readonly Action<Forms.ContextMenuStrip> populate;
@@ -56,10 +84,11 @@ internal sealed class TrayIcon : IDisposable
     private bool hoverMenu;
     private bool waitForLeave;
 
-    internal TrayIcon(HwndSource source, Icon icon, Action<Forms.ContextMenuStrip> populate, Action open)
+    internal TrayIcon(HwndSource source, Action<Forms.ContextMenuStrip> populate, Action open)
     {
         this.source = source;
-        this.icon = icon;
+        darkTaskbar = IsDarkTaskbar();
+        icon = VectorAssets.TrayIcon(darkTaskbar);
         this.populate = populate;
         this.open = open;
         data = new NotifyData
@@ -86,6 +115,38 @@ internal sealed class TrayIcon : IDisposable
 
     internal bool IsRegistered { get; private set; }
 
+    private static bool IsDarkTaskbar()
+    {
+        try
+        {
+            return Microsoft.Win32.Registry.GetValue(
+                @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "SystemUsesLightTheme", 1) is 0;
+        }
+        catch (Exception error) when (error is UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            return false;
+        }
+    }
+
+    private void RefreshTaskbarIcon()
+    {
+        bool dark = IsDarkTaskbar();
+        if (dark == darkTaskbar) return;
+        var replacement = VectorAssets.TrayIcon(dark);
+        var update = data;
+        update.Flags = 0x02;
+        update.Icon = replacement.Handle;
+        if (IsRegistered && !ShellNotifyIcon(1, ref update))
+        {
+            replacement.Dispose();
+            return;
+        }
+        icon.Dispose();
+        icon = replacement;
+        darkTaskbar = dark;
+        data.Icon = replacement.Handle;
+    }
+
     private void Register()
     {
         IsRegistered = ShellNotifyIcon(0, ref data);
@@ -100,6 +161,7 @@ internal sealed class TrayIcon : IDisposable
 
     private IntPtr WindowMessage(IntPtr window, int message, IntPtr wparam, IntPtr lparam, ref bool handled)
     {
+        if (message is SettingChange or ThemeChanged) RefreshTaskbarIcon();
         if (message == taskbarCreated)
         {
             Register();

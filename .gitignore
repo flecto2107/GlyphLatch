@@ -1,6 +1,7 @@
 bin/
 obj/
 artifacts/
+LoadingGlyphs.local.txt
 
 # Local settings, credentials and profile data
 .vs/

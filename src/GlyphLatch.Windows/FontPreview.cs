@@ -55,7 +55,7 @@ public sealed class FontPreview : FrameworkElement
         GlyphTypeface? loaded = await window.PreviewCache.GetAsync(entry);
         if (request != revision) return;
         face = loaded;
-        if (face == null) unavailable = "Образец недоступен";
+        if (face == null) unavailable = "Не удалось прочитать контуры шрифта";
         if (Wrap) InvalidateMeasure();
         InvalidateVisual();
     }
@@ -65,9 +65,11 @@ public sealed class FontPreview : FrameworkElement
     private Cell[] GetCells(string text, GlyphTypeface typeface) => text.EnumerateRunes()
         .Where(rune => !Rune.IsControl(rune)).Select(rune =>
         {
-            bool exists = typeface.CharacterToGlyphMap.TryGetValue(rune.Value, out ushort id);
+            double advance = 0;
+            bool exists = typeface.CharacterToGlyphMap.TryGetValue(rune.Value, out ushort id) && id != 0 &&
+                typeface.AdvanceWidths.TryGetValue(id, out advance) && double.IsFinite(advance) && advance >= 0;
             return new Cell(Rune.IsWhiteSpace(rune), exists ? id : null,
-                exists ? typeface.AdvanceWidths[id] * Size : Size * .52);
+                exists ? advance * Size : Size * .52);
         }).ToArray();
 
     private IEnumerable<ArraySegment<Cell>> GetLines(GlyphTypeface typeface, double width)
@@ -134,7 +136,7 @@ public sealed class FontPreview : FrameworkElement
         }
         catch (Exception error) when (FontPreviewCache.IsFontError(error))
         {
-            DrawNote(drawing, "Образец недоступен", Muted, dpi);
+            DrawNote(drawing, "Не удалось отрисовать контуры шрифта", Muted, dpi);
         }
         finally { drawing.Pop(); }
 

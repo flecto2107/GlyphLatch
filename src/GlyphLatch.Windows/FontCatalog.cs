@@ -28,6 +28,7 @@ internal sealed record FontEntry(string Id, FontFile? Font, string Path, bool Av
 internal sealed class FontCatalog
 {
     internal const string Unavailable = "Файл недоступен";
+    internal const string LooseFilesFolderId = "imported-files";
     internal CatalogCache Cache { get; }
     internal List<FontEntry> Entries { get; }
     internal List<FolderNode> Folders { get; }
@@ -81,10 +82,12 @@ internal sealed class FontCatalog
             {
                 var preferred = group.FirstOrDefault(file => file.Issue == null) ?? group.First();
                 return new FontEntry(group.Key, preferred.Font, preferred.Path, preferred.Issue == null,
-                    preferred.Issue, group.ToArray());
+                    preferred.Issue, group.Select(file => file.Folder == null ? file with { Folder = LooseFilesFolderId } : file).ToArray());
             })
             .OrderBy(font => font.Family, StringComparer.CurrentCultureIgnoreCase)
             .ThenBy(font => font.Face, StringComparer.CurrentCultureIgnoreCase).ToList();
+        if (Entries.Any(font => font.Locations.Any(location => location.Folder == LooseFilesFolderId)))
+            Folders.Add(new FolderNode(LooseFilesFolderId, "Отдельные файлы", null, false, true));
     }
 
     internal static string Identity(IndexedPath file) => file.Font?.Hash ?? $"path:{file.Path}";

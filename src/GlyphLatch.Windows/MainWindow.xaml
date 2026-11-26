@@ -10,54 +10,73 @@
     <Window.Resources>
         <ResourceDictionary Source="Controls.xaml" />
     </Window.Resources>
-    <Grid Background="{DynamicResource Canvas}">
+    <Grid>
+    <Grid x:Name="WorkspaceSurface" Background="{DynamicResource Canvas}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition x:Name="SidebarColumn" Width="215" MinWidth="207" MaxWidth="465" />
             <ColumnDefinition Width="5" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Border Background="{DynamicResource Rail}">
-            <DockPanel Margin="13,17,13,13">
+            <DockPanel Margin="13,17,13,4">
                 <StackPanel DockPanel.Dock="Top">
-                    <StackPanel Orientation="Horizontal" Margin="5,0,0,15">
-                        <Viewbox Width="34" Height="34">
-                            <Canvas Width="64" Height="64">
-                                <Rectangle Canvas.Left="1" Canvas.Top="1" Width="62" Height="62" RadiusX="16" RadiusY="16" Fill="{DynamicResource Ink}" />
-                                <Path Data="M43.5,20.5 A17,17 0 1 0 44,43 L44,34 L32,34" Stroke="{DynamicResource Panel}"
-                                      StrokeThickness="6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
-                                <Ellipse Canvas.Left="40.5" Canvas.Top="29.5" Width="9" Height="9" Fill="{DynamicResource LogoDot}" />
-                            </Canvas>
-                        </Viewbox>
-                        <TextBlock Text="GlyphLatch" FontSize="21" FontWeight="SemiBold" Margin="9,0,0,0" VerticalAlignment="Center" />
-                    </StackPanel>
+                    <Image x:Name="BrandLogo" Height="39" Width="158" HorizontalAlignment="Left" Margin="5,0,0,22"
+                           Stretch="Uniform" AutomationProperties.Name="GlyphLatch" />
                     <Button x:Name="ImportButton" Style="{StaticResource Primary}" Click="ImportMenu"
                             Margin="0,0,0,12" HorizontalContentAlignment="Stretch" AutomationProperties.Name="Добавить в библиотеку">
                         <DockPanel>
-                            <TextBlock DockPanel.Dock="Right" Text="⌄" Margin="6,0,0,0" />
-                            <TextBlock Text="+  Добавить" />
+                            <local:LucideIcon Glyph="chevron-down" DockPanel.Dock="Right" Margin="6,0,0,0" />
+                            <local:LucideIcon Glyph="plus" Margin="0,0,6,0" />
+                            <TextBlock Text="Добавить" VerticalAlignment="Center" />
                         </DockPanel>
                     </Button>
-                    <Button x:Name="AllButton" Style="{StaticResource RailButton}" Click="SelectAll" Content="Все шрифты" />
-                    <Button x:Name="ActiveButton" Style="{StaticResource RailButton}" Click="SelectActive" AutomationProperties.Name="Активные шрифты">
-                        <StackPanel Orientation="Horizontal">
+                    <Button x:Name="AllButton" Style="{StaticResource RailButton}" Click="SelectAll"
+                            HorizontalContentAlignment="Stretch" AutomationProperties.Name="Все шрифты">
+                        <DockPanel>
+                            <TextBlock x:Name="AllBadge" DockPanel.Dock="Right" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Caption}" />
+                            <local:LucideIcon Glyph="library-big" Margin="0,0,7,0" />
+                            <TextBlock Text="Все шрифты" />
+                        </DockPanel>
+                    </Button>
+                    <Button x:Name="ActiveButton" Style="{StaticResource RailButton}" Click="SelectActive"
+                            HorizontalContentAlignment="Stretch" AutomationProperties.Name="Активные шрифты">
+                        <DockPanel>
+                            <TextBlock x:Name="ActiveBadge" DockPanel.Dock="Right" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Caption}" />
+                            <local:LucideIcon Glyph="circle-check" Margin="0,0,7,0" />
                             <TextBlock Text="Активные" />
-                            <TextBlock x:Name="ActiveBadge" Margin="8,1,0,0" Style="{StaticResource Caption}" />
+                        </DockPanel>
+                    </Button>
+                    <Button x:Name="SandboxButton" Style="{StaticResource RailButton}" Click="SelectSandbox" AutomationProperties.Name="Песочница">
+                        <StackPanel Orientation="Horizontal">
+                            <local:LucideIcon Glyph="flask-conical" Margin="0,0,7,0" />
+                            <TextBlock Text="Песочница" />
                         </StackPanel>
                     </Button>
-                    <Button x:Name="SandboxButton" Style="{StaticResource RailButton}" Click="SelectSandbox" Content="Песочница" />
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
                     <Border Height="1" Background="{DynamicResource Line}" Margin="0,0,0,8" />
-                    <ToggleButton x:Name="ThemeButton" Style="{StaticResource ThemeSwitch}" Content="Тёмная тема" Click="ToggleTheme" />
-                    <Button Style="{StaticResource QuitButton}" Click="QuitClick" Content="Выйти из GlyphLatch" Margin="0,3,0,0" />
-                    <TextBlock x:Name="VersionLabel" Style="{StaticResource Caption}" Margin="10,4,0,0" />
+                    <ToggleButton x:Name="ThemeButton" Style="{StaticResource ThemeSwitch}" Click="ToggleTheme" AutomationProperties.Name="Тёмная тема">
+                        <StackPanel Orientation="Horizontal">
+                            <local:LucideIcon Glyph="moon" Margin="0,0,7,0" />
+                            <TextBlock Text="Тёмная тема" />
+                        </StackPanel>
+                    </ToggleButton>
+                    <Button Style="{StaticResource QuitButton}" Click="QuitClick" Margin="0,3,0,0" AutomationProperties.Name="Закрыть GlyphLatch">
+                        <StackPanel Orientation="Horizontal">
+                            <local:LucideIcon Glyph="log-out" Margin="0,0,7,0" />
+                            <TextBlock Text="Закрыть GlyphLatch" />
+                        </StackPanel>
+                    </Button>
+                    <TextBlock x:Name="VersionLabel" Style="{StaticResource Caption}" Margin="10,16,0,0" />
                 </StackPanel>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel>
                         <DockPanel Margin="8,12,0,4">
-                            <Button x:Name="NewFolderButton" DockPanel.Dock="Right" Style="{StaticResource Quiet}" Content="+"
-                                    FontSize="17" Padding="7,0" MinHeight="26" Click="NewFolder"
-                                    ToolTip="Создать папку" AutomationProperties.Name="Создать папку" />
+                            <Button x:Name="NewFolderButton" DockPanel.Dock="Right" Style="{StaticResource Quiet}"
+                                    Padding="5,0" MinHeight="26" Click="NewFolder"
+                                    ToolTip="Создать папку" AutomationProperties.Name="Создать папку">
+                                <local:LucideIcon Glyph="plus" Width="14" Height="14" />
+                            </Button>
                             <TextBlock Text="Папки" Style="{StaticResource Caption}" VerticalAlignment="Center" />
                         </DockPanel>
                         <TreeView x:Name="FoldersTree" Background="Transparent" BorderThickness="0"
@@ -65,12 +84,12 @@
                             <TreeView.ItemTemplate>
                                 <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                                     <DockPanel LastChildFill="True">
-                                        <Button DockPanel.Dock="Right" Content="···" Tag="{Binding}" Click="FolderMenu"
+                                        <Button DockPanel.Dock="Right" Tag="{Binding}" Click="FolderMenu"
                                                 Style="{StaticResource NavigationAction}" ToolTip="Действия с папкой"
-                                                AutomationProperties.Name="Действия с папкой" />
-                                        <Path Width="12" Height="10" Stretch="Fill" Stroke="{DynamicResource Muted}" StrokeThickness="1"
-                                              Data="M0.5 2.5 L0.5 0.5 L4.5 0.5 L6 2 L11.5 2 L11.5 9 L0.5 9 Z"
-                                              VerticalAlignment="Center" Margin="0,0,6,0" />
+                                                AutomationProperties.Name="Действия с папкой">
+                                            <local:LucideIcon Glyph="ellipsis" Width="14" Height="14" />
+                                        </Button>
+                                        <local:LucideIcon Glyph="folder" Width="14" Height="14" Foreground="{DynamicResource Muted}" Margin="0,0,5,0" />
                                         <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"
                                                    VerticalAlignment="Center" ToolTip="{Binding Label}" />
                                     </DockPanel>
@@ -78,18 +97,23 @@
                             </TreeView.ItemTemplate>
                         </TreeView>
                         <DockPanel Margin="8,14,0,4">
-                            <Button x:Name="NewSetButton" DockPanel.Dock="Right" Style="{StaticResource Quiet}" Content="+"
-                                    FontSize="17" Padding="7,0" MinHeight="26" Click="NewSet"
-                                    ToolTip="Создать набор" AutomationProperties.Name="Создать набор" />
+                            <Button x:Name="NewSetButton" DockPanel.Dock="Right" Style="{StaticResource Quiet}"
+                                    Padding="5,0" MinHeight="26" Click="NewSet"
+                                    ToolTip="Создать набор" AutomationProperties.Name="Создать набор">
+                                <local:LucideIcon Glyph="plus" Width="14" Height="14" />
+                            </Button>
                             <TextBlock Text="Наборы" Style="{StaticResource Caption}" VerticalAlignment="Center" />
                         </DockPanel>
                         <ListBox x:Name="SetsList" SelectionChanged="SetSelected">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <DockPanel>
-                                        <Button DockPanel.Dock="Right" Content="···" Tag="{Binding}" Click="SetMenu"
+                                        <Button DockPanel.Dock="Right" Tag="{Binding}" Click="SetMenu"
                                                 Style="{StaticResource NavigationAction}" ToolTip="Действия с набором"
-                                                AutomationProperties.Name="Действия с набором" />
+                                                AutomationProperties.Name="Действия с набором">
+                                            <local:LucideIcon Glyph="ellipsis" Width="14" Height="14" />
+                                        </Button>
+                                        <local:LucideIcon Glyph="layers" Width="14" Height="14" Foreground="{DynamicResource Muted}" Margin="0,0,5,0" />
                                         <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"
                                                    VerticalAlignment="Center" ToolTip="{Binding Label}" />
                                     </DockPanel>
@@ -103,7 +127,7 @@
         <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                       ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Background="{DynamicResource Line}"
                       DragCompleted="SidebarResized" AutomationProperties.Name="Ширина навигации" />
-        <Grid x:Name="CatalogWorkspace" Grid.Column="2" Margin="21,16,21,12">
+        <Grid x:Name="CatalogWorkspace" Grid.Column="2" Margin="21,16,21,8">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
                 <RowDefinition Height="*" /><RowDefinition Height="Auto" />
@@ -116,7 +140,7 @@
                     <TextBlock x:Name="PageSubtitle" Text="Все шрифты" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
             </DockPanel>
-            <Grid Grid.Row="1" Margin="0,0,0,9">
+            <Grid Grid.Row="1" Margin="0,0,0,14">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="3*" MinWidth="120" MaxWidth="285" />
                     <ColumnDefinition Width="Auto" />
@@ -126,16 +150,16 @@
                 <Grid>
                     <TextBox x:Name="SearchBox" MinHeight="35" Padding="30,4,27,4" TextChanged="SearchChanged"
                              AutomationProperties.Name="Поиск шрифтов" ToolTip="Ctrl+F" />
-                    <Path Data="M 8.5,8.5 L13,13 M10,5.5 A4.5,4.5 0 1 1 1,5.5 A4.5,4.5 0 1 1 10,5.5"
-                          Stroke="{DynamicResource Muted}" Width="15" Height="15" Stretch="Uniform" HorizontalAlignment="Left" VerticalAlignment="Center"
-                          Margin="9,0,0,0" IsHitTestVisible="False" />
+                    <local:LucideIcon Glyph="search" Foreground="{DynamicResource Muted}" HorizontalAlignment="Left" Margin="9,0,0,0" />
                     <TextBlock x:Name="SearchPlaceholder" Text="Поиск шрифтов" Style="{StaticResource Caption}"
                                Margin="30,0,7,0" VerticalAlignment="Center" IsHitTestVisible="False" TextTrimming="CharacterEllipsis" />
-                    <Button x:Name="ClearSearchButton" Style="{StaticResource Quiet}" Content="×" HorizontalAlignment="Right"
+                    <Button x:Name="ClearSearchButton" Style="{StaticResource Quiet}" HorizontalAlignment="Right"
                             Margin="0,2,2,2" Click="ClearSearch" MinHeight="28" Padding="6,0" Visibility="Collapsed"
-                            AutomationProperties.Name="Очистить поиск" />
+                            AutomationProperties.Name="Очистить поиск">
+                        <local:LucideIcon Glyph="x" Width="14" Height="14" />
+                    </Button>
                 </Grid>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="13,0,0,0">
                     <ToggleButton x:Name="LatinPreset" Style="{StaticResource CatalogPreset}" Content="Aa" Tag="latin" Click="SamplePreset"
                                   ToolTip="Образец на латинице" AutomationProperties.Name="Образец на латинице" />
                     <ToggleButton x:Name="CyrillicPreset" Style="{StaticResource CatalogPreset}" Content="Ая" Tag="cyrillic" Click="SamplePreset"
@@ -144,30 +168,28 @@
                                   ToolTip="Образец с цифрами" AutomationProperties.Name="Образец с цифрами" />
                     <ToggleButton x:Name="CustomPreset" Style="{StaticResource CatalogPreset}" Tag="custom" Click="SamplePreset"
                                   ToolTip="Свой текст образца" AutomationProperties.Name="Свой текст образца">
-                        <Path Width="13" Height="13" Stretch="Uniform" Stroke="{DynamicResource Ink}" StrokeThickness="1.2"
-                              StrokeLineJoin="Round" Data="M2,11 L2,14 L5,14 L14,5 L11,2 Z M9.5,3.5 L12.5,6.5" />
+                        <local:LucideIcon Glyph="pencil" />
                     </ToggleButton>
-                    <Button x:Name="MorePresets" Style="{StaticResource Quiet}" Content="···" Click="MoreSamples" Width="34"
-                            Padding="0" ToolTip="Другие образцы" AutomationProperties.Name="Другие образцы" />
+                    <Button x:Name="MorePresets" Style="{StaticResource Quiet}" Click="MoreSamples" Width="34"
+                            Padding="0" ToolTip="Другие образцы" AutomationProperties.Name="Другие образцы">
+                        <local:LucideIcon Glyph="ellipsis" />
+                    </Button>
                 </StackPanel>
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
-                    <ToggleButton x:Name="CyrillicFilter" Style="{StaticResource Segment}" Content="С кириллицей" Click="FilterChanged"
+                    <ToggleButton x:Name="CyrillicFilter" Style="{StaticResource ThemeSwitch}" Content="С кириллицей" Click="FilterChanged"
                                   ToolTip="Показывать шрифты с полным русским алфавитом" />
-                    <Button x:Name="RefreshButton" Style="{StaticResource Quiet}" Click="RefreshClick" Content="↻" Padding="6,0"
-                            ToolTip="Обновить библиотеку" AutomationProperties.Name="Обновить библиотеку" />
-                    <Slider x:Name="SampleSize" Width="67" Margin="9,0,0,0" Minimum="20" Maximum="76" Value="42" ValueChanged="SampleSizeChanged"
+                    <Slider x:Name="SampleSize" Width="67" Margin="13,0,0,0" Minimum="20" Maximum="76" Value="42" ValueChanged="SampleSizeChanged"
                             IsSnapToTickEnabled="True" TickFrequency="1" ToolTip="Размер образца" AutomationProperties.Name="Размер образца" />
                     <TextBlock x:Name="SizeLabel" Width="39" TextAlignment="Right" Style="{StaticResource Caption}" VerticalAlignment="Center" />
+                    <Button x:Name="RefreshButton" Style="{StaticResource Quiet}" Click="RefreshClick" Padding="7,0" Margin="10,0,0,0"
+                            ToolTip="Обновить библиотеку" AutomationProperties.Name="Обновить библиотеку">
+                        <local:LucideIcon Glyph="refresh-cw" />
+                    </Button>
                 </StackPanel>
             </Grid>
             <StackPanel Grid.Row="2">
                 <TextBox x:Name="SampleText" Visibility="Collapsed" MinHeight="39" Margin="0,0,0,9" TextChanged="SampleChanged"
                          MaxLength="160" AutomationProperties.Name="Свой текст образца" />
-                <StackPanel x:Name="ScanIndicator" Visibility="Collapsed" Margin="0,0,0,9" AutomationProperties.LiveSetting="Polite">
-                    <TextBlock Text="Индексирую шрифты…" Style="{StaticResource Caption}" Margin="0,0,0,4" />
-                    <ProgressBar Height="4" IsIndeterminate="True" Background="{DynamicResource Line}"
-                                 Foreground="{DynamicResource Ink}" BorderThickness="0" />
-                </StackPanel>
             </StackPanel>
             <Grid Grid.Row="3">
                 <Grid.ColumnDefinitions>
@@ -175,15 +197,27 @@
                     <ColumnDefinition x:Name="GlyphGap" Width="0" />
                     <ColumnDefinition x:Name="GlyphColumn" Width="0" />
                 </Grid.ColumnDefinitions>
-                <Border Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="10" Padding="9">
+                <Border Background="{DynamicResource Panel}" CornerRadius="10" Padding="9">
                     <DockPanel>
-                        <DockPanel DockPanel.Dock="Top" Margin="4,0,4,5">
+                        <DockPanel DockPanel.Dock="Top" Margin="4,0,4,8">
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                                 <Button x:Name="DetailAction" Style="{StaticResource RowAction}" Content="Включить" Click="DetailActivation"
                                         Visibility="Collapsed" Margin="0,0,3,0" ToolTip="Переключить выделение (Ctrl+Enter)" />
                                 <Button x:Name="DetailOff" Style="{StaticResource RowAction}" Content="Выключить" CommandParameter="off"
                                         Click="DetailActivation" Visibility="Collapsed" Margin="0,0,3,0" />
-                                <Button x:Name="AddToSetButton" Style="{StaticResource RowAction}" Content="В набор…" Click="QuickSetMenu" />
+                                <Button x:Name="AddToSetButton" Style="{StaticResource RowAction}" Click="QuickSetMenu" AutomationProperties.Name="В набор">
+                                    <StackPanel Orientation="Horizontal">
+                                        <local:LucideIcon Glyph="layers" Width="14" Height="14" Margin="0,0,4,0" />
+                                        <TextBlock Text="В набор…" />
+                                    </StackPanel>
+                                </Button>
+                                <ToggleButton x:Name="GlyphAction" Style="{StaticResource Segment}" Click="ToggleGlyphs" Margin="8,0,0,0"
+                                              ToolTip="Глифы выбранного начертания (F4)" AutomationProperties.Name="Глифы выбранного начертания">
+                                    <StackPanel Orientation="Horizontal">
+                                        <local:LucideIcon Glyph="grid-2x2" Width="14" Height="14" Margin="0,0,5,0" />
+                                        <TextBlock Text="Глифы" />
+                                    </StackPanel>
+                                </ToggleButton>
                             </StackPanel>
                             <TextBlock x:Name="FontCount" Style="{StaticResource Caption}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                         </DockPanel>
@@ -210,15 +244,15 @@
                                                     AutomationProperties.Name="{Binding ActivationHint}" />
                                             <StackPanel Grid.Column="1">
                                             <DockPanel>
-                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="5,0,0,0">
-                                                    <Button Style="{StaticResource RowAction}" Content="Глифы" Tag="{Binding}" IsEnabled="{Binding HasGlyphs}"
-                                                            Click="OpenRowGlyphs" Margin="0,0,3,0" />
-                                                    <Button Style="{StaticResource Quiet}" Content="···" Tag="{Binding}" Click="DetailsMenu"
-                                                            MinHeight="29" Padding="7,1" AutomationProperties.Name="Действия с начертанием" />
-                                                </StackPanel>
-                                                <Button x:Name="Disclosure" DockPanel.Dock="Left" Style="{StaticResource Quiet}" Content="{Binding Disclosure}"
+                                                <Button DockPanel.Dock="Right" Style="{StaticResource Quiet}" Tag="{Binding}" Click="DetailsMenu"
+                                                        MinHeight="29" Padding="7,1" Margin="5,0,0,0" AutomationProperties.Name="Действия с начертанием">
+                                                    <local:LucideIcon Glyph="ellipsis" Width="14" Height="14" />
+                                                </Button>
+                                                <Button x:Name="Disclosure" DockPanel.Dock="Left" Style="{StaticResource Quiet}"
                                                         Tag="{Binding}" Click="ToggleGroup" Visibility="Collapsed" MinHeight="28" Width="20" Padding="0"
-                                                        AutomationProperties.Name="Показать или скрыть начертания" />
+                                                        AutomationProperties.Name="Показать или скрыть начертания">
+                                                    <local:LucideIcon Glyph="{Binding Disclosure}" Width="14" Height="14" />
+                                                </Button>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Ink}" />
                                                     <TextBlock Text="{Binding Subtitle}" FontSize="11" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Detail}" />
@@ -248,13 +282,43 @@
                 </Border>
                 <local:GlyphPanel x:Name="Glyphs" Grid.Column="2" Visibility="Collapsed" />
             </Grid>
-            <DockPanel Grid.Row="4" Margin="2,7,0,0" MinHeight="28">
-                <Button x:Name="CancelScanButton" DockPanel.Dock="Right" Style="{StaticResource Quiet}" Content="Отменить" Click="CancelScan" Visibility="Collapsed" />
+            <DockPanel x:Name="CatalogFooter" Grid.Row="4" Margin="2,5,0,0">
+                <DockPanel.Style>
+                    <Style TargetType="DockPanel">
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding Text, ElementName=FooterStatus}" Value="" />
+                                    <Condition Binding="{Binding Visibility, ElementName=RetryButton}" Value="Collapsed" />
+                                    <Condition Binding="{Binding Visibility, ElementName=DisableAllButton}" Value="Collapsed" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DockPanel.Style>
                 <Button x:Name="RetryButton" DockPanel.Dock="Right" Style="{StaticResource Quiet}" Content="Повторить ошибки" Click="RetryClick" Visibility="Collapsed" />
                 <Button x:Name="DisableAllButton" DockPanel.Dock="Right" Style="{StaticResource Quiet}" Content="Выключить все" Click="DisableAllClick" Visibility="Collapsed" />
                 <TextBlock x:Name="FooterStatus" Style="{StaticResource Caption}" TextWrapping="Wrap" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
             </DockPanel>
         </Grid>
         <Grid x:Name="SandboxWorkspace" Grid.Column="2" Margin="21,16,21,12" Visibility="Collapsed" />
+    </Grid>
+        <Border x:Name="LoadingOverlay" Background="{DynamicResource ScanScrim}" Visibility="Collapsed" Panel.ZIndex="1"
+                KeyboardNavigation.TabNavigation="Cycle">
+            <Border Background="{DynamicResource Panel}" CornerRadius="18" Padding="36,32" MinWidth="326" MinHeight="270"
+                    VerticalAlignment="Center" HorizontalAlignment="Center">
+                <StackPanel HorizontalAlignment="Center">
+                    <Path x:Name="LoadingGlyph" Fill="{DynamicResource Ink}" Stretch="Uniform" Width="89" Height="89"
+                          HorizontalAlignment="Center" Margin="0,4,0,23" IsHitTestVisible="False" RenderTransformOrigin=".5,.5">
+                        <Path.RenderTransform><ScaleTransform x:Name="LoadingScale" /></Path.RenderTransform>
+                    </Path>
+                    <TextBlock Text="Читаю шрифты" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"
+                               AutomationProperties.LiveSetting="Polite" />
+                    <Button x:Name="CancelScanButton" Style="{StaticResource Quiet}" Content="Отменить" Click="CancelScan"
+                            Margin="0,25,0,0" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Border>
     </Grid>
 </Window>

@@ -27,12 +27,16 @@ internal sealed class FontPreviewCache(string directory)
             return Task.FromResult<GlyphTypeface?>(node.Value.Face);
         }
         if (pending.TryGetValue(font.Hash, out var load)) return load;
-        load = Load(font with { Path = entry.Path }, recent.Select(item => item.Hash).ToHashSet(StringComparer.Ordinal));
+        var sources = new[] { font with { Path = entry.Path } }.Concat(entry.Locations
+                .Where(location => location.Issue == null && location.Font?.Hash == font.Hash)
+                .Select(location => location.Font! with { Path = location.Path }))
+            .DistinctBy(source => source.Path, StringComparer.OrdinalIgnoreCase).ToArray();
+        load = Load(sources);
         pending.Add(font.Hash, load);
         return load;
     }
 
-    private async Task<GlyphTypeface?> Load(FontFile font, HashSet<string> pinned)
+    private async Task<GlyphTypeface?> Load(FontFile[] sources)
     {
         await Task.Yield();
         try
@@ -40,10 +44,13 @@ internal sealed class FontPreviewCache(string directory)
             await disk.WaitAsync();
             try
             {
-                string path = await Task.Run(() => Copy(font, pinned));
-                var face = new GlyphTypeface(new Uri(path));
-                recent.AddFirst((font.Hash, face));
-                if (recent.Count > 32) recent.RemoveLast();
+                var pinned = recent.Select(item => item.Hash).ToHashSet(StringComparer.Ordinal);
+                var face = await Task.Run(() => ReadFace(sources, pinned));
+                if (face != null)
+                {
+                    recent.AddFirst((sources[0].Hash, face));
+                    if (recent.Count > 32) recent.RemoveLast();
+                }
                 return face;
             }
             finally { disk.Release(); }
@@ -52,7 +59,32 @@ internal sealed class FontPreviewCache(string directory)
         {
             return null;
         }
-        finally { pending.Remove(font.Hash); }
+        finally { pending.Remove(sources[0].Hash); }
+    }
+
+    private GlyphTypeface? ReadFace(FontFile[] sources, HashSet<string> pinned)
+    {
+        foreach (var source in sources)
+        {
+            try { return Open(Copy(source, pinned)); }
+            catch (Exception error) when (IsFontError(error)) { }
+
+            try
+            {
+                var original = new FileInfo(source.Path);
+                if (original.Exists && original.Length == source.Length && original.LastWriteTimeUtc.Ticks == source.Modified)
+                    return Open(source.Path);
+            }
+            catch (Exception error) when (IsFontError(error)) { }
+        }
+        return null;
+    }
+
+    private static GlyphTypeface Open(string path)
+    {
+        var face = new GlyphTypeface(new Uri(path));
+        _ = face.CharacterToGlyphMap.Count;
+        return face;
     }
 
     private string Copy(FontFile font, HashSet<string> pinned)
@@ -61,7 +93,11 @@ internal sealed class FontPreviewCache(string directory)
         // A separate directory per face avoids stale WPF font-directory indexes.
         string parent = Path.Combine(directory, font.Hash);
         string target = Path.Combine(parent, "specimen" + Path.GetExtension(font.Path).ToLowerInvariant());
-        if (File.Exists(target)) return target;
+        if (File.Exists(target))
+        {
+            if (new FileInfo(target).Length != font.Length) throw new IOException("Копия шрифта в кеше повреждена.");
+            return target;
+        }
         const long limit = 192L * 1024 * 1024;
         var copies = new DirectoryInfo(directory).EnumerateDirectories()
             .Where(folder => folder.Name.Length == 64 && folder.Name.All(Uri.IsHexDigit) &&
